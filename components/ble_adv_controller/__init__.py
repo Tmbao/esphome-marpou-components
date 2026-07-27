@@ -1,6 +1,6 @@
 import esphome.codegen as cg
 import esphome.config_validation as cv
-from esphome.core import ID
+from esphome.core import CORE, ID
 from esphome.const import (
     CONF_DURATION,
     CONF_ID,
@@ -21,7 +21,7 @@ from .const import (
     CONF_BLE_ADV_SHOW_CONFIG,
 )
 
-AUTO_LOAD = ["esp32_ble", "select", "number"]
+AUTO_LOAD = ["esp32_ble"]
 DEPENDENCIES = ["esp32"]
 MULTI_CONF = True
 
@@ -252,12 +252,15 @@ async def entity_base_code_gen(var, config, platform):
 class BleAdvRegistry:
     handler = None
     @classmethod
-    def get(cls):
+    async def get(cls):
         if not cls.handler:
             hdl_id = ID("ble_adv_static_handler", type=BleAdvHandler)
             cls.handler = cg.new_Pvariable(hdl_id)
-            cg.add(cls.handler.set_component_source("ble_adv_handler"))
-            cg.add(cg.App.register_component(cls.handler))
+            # This helper component is created during code generation rather
+            # than declared in YAML, so register it for the current static
+            # component-count and registration pipeline.
+            CORE.component_ids.add(hdl_id.id)
+            await cg.register_component(cls.handler, {})
             for encoding, params in BLE_ADV_ENCODERS.items():
                 for variant, param_variant in params["variants"].items():
                     if "class" in param_variant:
@@ -269,9 +272,8 @@ class BleAdvRegistry:
         return cls.handler
 
 async def to_code(config):
-    hdl = BleAdvRegistry.get()
+    hdl = await BleAdvRegistry.get()
     var = cg.new_Pvariable(config[CONF_ID])
-    cg.add(var.set_setup_priority(300)) # start after Bluetooth
     await cg.register_component(var, config)
     await setup_entity(var, config, "ble_adv_controller")
     cg.add(var.set_handler(hdl))
@@ -285,5 +287,3 @@ async def to_code(config):
     else:
         cg.add(var.set_forced_id(config[CONF_ID].id))
     cg.add(var.set_show_config(config[CONF_BLE_ADV_SHOW_CONFIG]))
-
-

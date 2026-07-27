@@ -141,7 +141,8 @@ ble_adv_controller:
     # index: a supplementary counter on the phone app to distinguish in between several devices
     # only usefull if you want to copy the phone app setup
     index: 0
-    # show_config (default true): shows the dynamic configuration in the device info page in Home Automation
+    # show_config is retained for backwards compatibility but dynamic configuration
+    # entities are not supported by current ESPHome versions. Configure values in YAML.
     show_config: true
 
 light:
@@ -204,18 +205,18 @@ button:
 ## Good to know
 
 ### Dynamic configuration
-It could be painful to find the correct variant or the correct duration by each time modifying the option in the yaml configuration of esphome. In order to help a dynamic configuration is available in Home Assistant 'Configuration' part of the esphome device:
+Current ESPHome versions require entity metadata to be generated at compile time, so this component no longer creates dynamic configuration entities in Home Assistant. Update `variant`, `duration`, and `min_brightness` in YAML and recompile when tuning them.
 
 ![choice encoding](../../doc/images/Choice_encoding.jpg)
 
-* `Variant` is customizable in the encoding selection part, the idea is to do the following:
+* To choose a `variant`, use the following process:
   * Start with the 'Zhi Jia - All' or 'FanLamp -All' depending on the corresponding phone app, and perform the Pairing with this: the component will send the pairing message with all variants, as the phone app is doing. If you need the pairing to be kept emited for a long time, increase the 'max_duration' option.
   * Once done you can test to switch ON / OFF the main light to check the pairing went OK
   * Then you can try the variants one by one and switch ON / OFF to find the exact variant used by your lamp
 
-* `Duration` is customizable, the lowest the better it makes the device answer faster. It is recommended to try to switch very fast ON/OFF the main light several times: If you end up with wrong state (light ON whereas HA state is OFF, or the reverse) it means the duration is too low and needs to be increased.
+* For `duration`, the lowest value gives the fastest response. Try switching quickly ON/OFF several times. If the physical and HA states diverge, increase it.
 
-Once you managed to define the relevant values (without the need to re flash each time!), you can save the values in the yaml config, and even hide the dynamic configuration with the option `show_config: false`
+Once you find the relevant values, save them in the YAML configuration and reflash the device.
 
 ### Setup without pairing
 Yes, it is possible!

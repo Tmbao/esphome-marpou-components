@@ -17,7 +17,7 @@ class BleAdvLight : public light::LightOutput, public BleAdvEntity, public Entit
   void set_min_brightness(int min_brightness, int min, int max, int step);
   void set_split_dim_cct(bool split_dim_cct) { this->split_dim_cct_ = split_dim_cct; }
 
-  float get_min_brightness() { return ((float)this->number_min_brightness_.state) / 100.0f; }
+  float get_min_brightness() { return this->min_brightness_ / 100.0f; }
 
   void setup_state(light::LightState *state) override { this->state_ = state; };
   void write_state(light::LightState *state) override;
@@ -28,7 +28,7 @@ class BleAdvLight : public light::LightOutput, public BleAdvEntity, public Entit
 
   light::LightTraits traits_;
   bool constant_brightness_;
-  BleAdvNumber number_min_brightness_;
+  float min_brightness_{1.0f};
   bool split_dim_cct_;
 
   bool is_off_{true};

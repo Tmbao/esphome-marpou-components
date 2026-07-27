@@ -1,67 +1,22 @@
 #include "ble_adv_controller.h"
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
-#include "esphome/core/application.h"
 
 namespace esphome {
 namespace bleadvcontroller {
 
 static const char *TAG = "ble_adv_controller";
 
-void BleAdvSelect::control(const std::string &value) {
-  this->publish_state(value);
-  uint32_t hash_value = fnv1_hash(value);
-  this->rtc_.save(&hash_value);
-}
-
-void BleAdvSelect::sub_init() { 
-  App.register_select(this);
-  this->rtc_ = global_preferences->make_preference< uint32_t >(this->get_object_id_hash());
-  uint32_t restored;
-  if (this->rtc_.load(&restored)) {
-    for (auto & opt: this->traits.get_options()) {
-      if(fnv1_hash(opt) == restored) {
-        this->state = opt;
-        return;
-      }
-    }
-  }
-}
-
-void BleAdvNumber::control(float value) {
-  this->publish_state(value);
-  this->rtc_.save(&value);
-}
-
-void BleAdvNumber::sub_init() {
-  App.register_number(this);
-  this->rtc_ = global_preferences->make_preference< float >(this->get_object_id_hash());
-  float restored;
-  if (this->rtc_.load(&restored)) {
-    this->state = restored;
-  }
-}
-
 void BleAdvController::set_encoding_and_variant(const std::string & encoding, const std::string & variant) {
-  this->select_encoding_.traits.set_options(this->handler_->get_ids(encoding));
   this->cur_encoder_ = this->handler_->get_encoder(encoding, variant);
-  this->select_encoding_.state = this->cur_encoder_->get_id();
-  this->select_encoding_.add_on_state_callback(std::bind(&BleAdvController::refresh_encoder, this, std::placeholders::_1, std::placeholders::_2));
-}
-
-void BleAdvController::refresh_encoder(std::string id, size_t index) {
-  this->cur_encoder_ = this->handler_->get_encoder(id);
 }
 
 void BleAdvController::set_min_tx_duration(int tx_duration, int min, int max, int step) {
-  this->number_duration_.traits.set_min_value(min);
-  this->number_duration_.traits.set_max_value(max);
-  this->number_duration_.traits.set_step(step);
-  this->number_duration_.state = tx_duration;
+  this->min_tx_duration_ = tx_duration;
 }
 
 void BleAdvController::setup() {
-#ifdef USE_API
+#ifdef USE_API_CUSTOM_SERVICES
   char object_id_buffer[OBJECT_ID_MAX_LEN];
   const auto object_id_ref = this->get_object_id_to(object_id_buffer);
   const std::string object_id(object_id_ref.c_str());
@@ -70,9 +25,8 @@ void BleAdvController::setup() {
   register_service(&BleAdvController::on_cmd, "cmd_" + object_id, {"cmd", "arg0", "arg1", "arg2", "arg3"});
   register_service(&BleAdvController::on_raw_inject, "inject_raw_" + object_id, {"raw"});
 #endif
-  if (this->is_show_config()) {
-    this->select_encoding_.init("Encoding", this->get_name());
-    this->number_duration_.init("Duration", this->get_name());
+  if (this->show_config_) {
+    ESP_LOGW(TAG, "Dynamic configuration entities are unavailable; use YAML configuration.");
   }
 }
 
@@ -86,7 +40,7 @@ void BleAdvController::dump_config() {
   ESP_LOGCONFIG(TAG, "  Transmission Min Duration: %ld ms", this->get_min_tx_duration());
   ESP_LOGCONFIG(TAG, "  Transmission Max Duration: %ld ms", this->max_tx_duration_);
   ESP_LOGCONFIG(TAG, "  Transmission Sequencing Duration: %ld ms", this->seq_duration_);
-  ESP_LOGCONFIG(TAG, "  Configuration visible: %s", this->show_config_ ? "YES" : "NO");
+  ESP_LOGCONFIG(TAG, "  Dynamic configuration: unavailable (set options in YAML)");
 }
 
 #ifdef USE_API
@@ -163,7 +117,7 @@ void BleAdvController::loop() {
   }
   else {
     // command is being advertised by this controller, check if stop and clean-up needed
-    uint32_t duration = this->commands_.empty() ? this->max_tx_duration_ : this->number_duration_.state;
+    uint32_t duration = this->commands_.empty() ? this->max_tx_duration_ : this->min_tx_duration_;
     if (now > this->adv_start_time_ + duration) {
       this->adv_start_time_ = 0;
       this->handler_->remove_from_advertiser(this->adv_id_);
