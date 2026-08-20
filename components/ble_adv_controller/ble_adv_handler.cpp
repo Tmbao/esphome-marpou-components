@@ -2,10 +2,6 @@
 #include "esphome/core/log.h"
 #include "esphome/core/hal.h"
 
-#ifdef USE_ESP32_BLE_DEVICE
-#include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
-#endif
-
 namespace esphome {
 namespace bleadvcontroller {
 

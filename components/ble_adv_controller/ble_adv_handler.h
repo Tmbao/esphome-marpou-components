@@ -6,18 +6,15 @@
 #ifdef USE_API
 #include "esphome/components/api/custom_api_device.h"
 #endif
+#ifdef USE_ESP32_BLE_DEVICE
+#include "esphome/components/esp32_ble_tracker/esp32_ble_tracker.h"
+#endif
 
 #include <esp_gap_ble_api.h>
 #include <vector>
 #include <list>
 
 namespace esphome {
-
-#ifdef USE_ESP32_BLE_DEVICE
-namespace esp32_ble_tracker {
-  class ESPBTDevice;
-}
-#endif
 
 namespace bleadvcontroller {
 
