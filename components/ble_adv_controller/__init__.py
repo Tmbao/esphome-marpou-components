@@ -244,10 +244,9 @@ CONFIG_SCHEMA = cv.All(
     cv.only_on([PLATFORM_ESP32]),
 )
 
-async def entity_base_code_gen(var, config, platform):
+async def register_ble_adv_component(var, config):
     await cg.register_parented(var, config[CONF_BLE_ADV_CONTROLLER_ID])
     await cg.register_component(var, config)
-    await setup_entity(var, config, platform)
 
 class BleAdvRegistry:
     handler = None

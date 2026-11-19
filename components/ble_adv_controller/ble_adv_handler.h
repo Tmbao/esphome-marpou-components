@@ -63,6 +63,7 @@ struct ControllerParam_t {
 };
 
 static constexpr size_t MAX_PACKET_LEN = 31;
+static constexpr size_t PACKET_HEX_BUFFER_SIZE = format_hex_pretty_size(MAX_PACKET_LEN);
 
 class BleAdvParam
 {

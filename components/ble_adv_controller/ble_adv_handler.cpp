@@ -199,9 +199,11 @@ std::vector<std::string> BleAdvHandler::get_ids(const std::string & encoding) {
 uint16_t BleAdvHandler::add_to_advertiser(std::vector< BleAdvParam > & params) {
   uint32_t msg_id = ++this->id_count;
   for (auto & param : params) {
+    char hex[PACKET_HEX_BUFFER_SIZE];
+    ESP_LOGD(TAG, "request start advertising - %ld: %s (%u)", msg_id,
+             format_hex_pretty_to(hex, param.get_full_buf(), param.get_full_len(), '.'),
+             static_cast<unsigned>(param.get_full_len()));
     this->packets_.emplace_back(BleAdvProcess(msg_id, std::move(param)));
-    ESP_LOGD(TAG, "request start advertising - %ld: %s", msg_id, 
-                esphome::format_hex_pretty(param.get_full_buf(), param.get_full_len()).c_str());
   }
   params.clear(); // As we moved the content, just to be sure no caller will re use it
   return this->id_count;
@@ -247,7 +249,9 @@ bool BleAdvHandler::identify_param(const BleAdvParam & param, bool ignore_ble_pa
       }
       encoder->encode(params, cmd, cont);
       BleAdvParam & fparam = params.back();
-      ESP_LOGD(TAG, "enc - %s", esphome::format_hex_pretty(fparam.get_full_buf(), fparam.get_full_len()).c_str());
+      char hex[PACKET_HEX_BUFFER_SIZE];
+      ESP_LOGD(TAG, "enc - %s (%u)", format_hex_pretty_to(hex, fparam.get_full_buf(), fparam.get_full_len(), '.'),
+               static_cast<unsigned>(fparam.get_full_len()));
       if (std::equal(param.get_const_data_buf(), param.get_const_data_buf() + param.get_data_len(), fparam.get_data_buf())) {
         ESP_LOGI(TAG, "Decoded / Re-encoded with NO DIFF");
       } else {
@@ -264,7 +268,9 @@ bool BleAdvHandler::identify_param(const BleAdvParam & param, bool ignore_ble_pa
 void BleAdvHandler::on_raw_decode(std::string raw) {
   BleAdvParam param;
   param.from_hex_string(raw);
-  ESP_LOGD(TAG, "raw - %s", esphome::format_hex_pretty(param.get_full_buf(), param.get_full_len()).c_str());
+  char hex[PACKET_HEX_BUFFER_SIZE];
+  ESP_LOGD(TAG, "raw - %s (%u)", format_hex_pretty_to(hex, param.get_full_buf(), param.get_full_len(), '.'),
+           static_cast<unsigned>(param.get_full_len()));
   this->identify_param(param, true);
 }
 #endif
@@ -283,7 +289,9 @@ void BleAdvHandler::capture(const esp32_ble_tracker::ESPBTDevice & device, bool 
   // Check if not already received in the last 300s
   auto idx = std::find(this->listen_packets_.begin(), this->listen_packets_.end(), param);
   if (idx == this->listen_packets_.end()) {
-    ESP_LOGD(TAG, "raw - %s", esphome::format_hex_pretty(param.get_full_buf(), param.get_full_len()).c_str());
+    char hex[PACKET_HEX_BUFFER_SIZE];
+    ESP_LOGD(TAG, "raw - %s (%u)", format_hex_pretty_to(hex, param.get_full_buf(), param.get_full_len(), '.'),
+             static_cast<unsigned>(param.get_full_len()));
     param.duration_ = millis() + (uint32_t)rem_time * 1000;
     this->identify_param(param, ignore_ble_param);
     this->listen_packets_.emplace_back(std::move(param));

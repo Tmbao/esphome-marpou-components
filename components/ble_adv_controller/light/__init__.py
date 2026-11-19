@@ -9,11 +9,12 @@ from esphome.const import (
     CONF_OUTPUT_ID,
     CONF_DEFAULT_TRANSITION_LENGTH,
 )
+from esphome.core.entity_helpers import setup_entity
 
 from .. import (
     bleadvcontroller_ns,
     ENTITY_BASE_CONFIG_SCHEMA,
-    entity_base_code_gen,
+    register_ble_adv_component,
     BleAdvEntity,
 )
 
@@ -60,7 +61,9 @@ CONFIG_SCHEMA = cv.All(
 
 async def to_code(config):
     var = cg.new_Pvariable(config[CONF_OUTPUT_ID])
-    await entity_base_code_gen(var, config, "light")
+    await register_ble_adv_component(var, config)
+    # The output needs a name for its logs; register_light sets up the separate LightState.
+    await setup_entity(var, config, "light")
     await light.register_light(var, config)
     if CONF_BLE_ADV_SECONDARY in config:
         cg.add(var.set_traits())

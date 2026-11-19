@@ -3,7 +3,6 @@ import esphome.config_validation as cv
 from esphome.components import button
 
 from esphome.const import (
-    CONF_OUTPUT_ID,
     ENTITY_CATEGORY_CONFIG,
     DEVICE_CLASS_IDENTIFY,
 )
@@ -11,7 +10,7 @@ from esphome.const import (
 from .. import (
     bleadvcontroller_ns,
     ENTITY_BASE_CONFIG_SCHEMA,
-    entity_base_code_gen,
+    register_ble_adv_component,
     BleAdvEntity,
 )
 
@@ -55,7 +54,7 @@ async def to_code(config):
 
     # perform code gen
     var = await button.new_button(config)
-    await entity_base_code_gen(var, config, "button")
+    await register_ble_adv_component(var, config)
     cg.add(var.set_cmd(params[CONF_BLE_ADV_CMD]))
     if nb_args > 0:
         cg.add(var.set_args(config[CONF_BLE_ADV_ARGS]))

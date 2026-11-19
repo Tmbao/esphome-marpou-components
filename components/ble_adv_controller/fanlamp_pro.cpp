@@ -115,23 +115,24 @@ bool FanLampEncoderV1::decode(uint8_t* buf, Command &cmd, ControllerParam_t & co
   if (data->command != 0x28 && !this->pair_arg_only_on_pair_ && data->args[2] != this->pair_arg3_) return false;
   if (data->command != 0x28 && this->pair_arg_only_on_pair_ && data->args[2] != 0) return false;
 
-  std::string decoded = esphome::format_hex_pretty(buf, this->len_);
+  char decoded[PACKET_HEX_BUFFER_SIZE];
+  format_hex_pretty_to(decoded, buf, this->len_, '.');
   uint16_t seed = htons(data->seed);
   uint8_t seed8 = static_cast<uint8_t>(seed & 0xFF);
-  ENSURE_EQ(data->r2, this->xor1_ ? seed8 ^ 1 : seed8, "Decoded KO (r2) - %s", decoded.c_str());
+  ENSURE_EQ(data->r2, this->xor1_ ? seed8 ^ 1 : seed8, "Decoded KO (r2) - %s (%zu)", decoded, this->len_);
 
   uint16_t crc16 = htons(this->crc16((uint8_t*)(data), sizeof(data_map_t) - 2, ~seed));
-  ENSURE_EQ(crc16, data->crc16, "Decoded KO (crc16) - %s", decoded.c_str());
+  ENSURE_EQ(crc16, data->crc16, "Decoded KO (crc16) - %s (%zu)", decoded, this->len_);
 
   if (data->args[2] != 0) {
-    ENSURE_EQ(data->args[2], this->pair_arg3_, "Decoded KO (arg3) - %s", decoded.c_str());
+    ENSURE_EQ(data->args[2], this->pair_arg3_, "Decoded KO (arg3) - %s (%zu)", decoded, this->len_);
   }
 
   if (this->with_crc2_) {
     uint16_t crc16_mac = this->crc16(buf + 1, 5, 0xffff);
     uint16_t crc16_2 = htons(this->crc16(buf + data_start, sizeof(data_map_t), crc16_mac));
     uint16_t crc16_data_2 = *(uint16_t*) &buf[this->len_ - 2];
-    ENSURE_EQ(crc16_data_2, crc16_2, "Decoded KO (crc16_2) - %s", decoded.c_str());
+    ENSURE_EQ(crc16_data_2, crc16_2, "Decoded KO (crc16_2) - %s (%zu)", decoded, this->len_);
   }
 
   uint8_t rem_id = data->src ^ seed8;
@@ -282,11 +283,13 @@ bool FanLampEncoderV2::decode(uint8_t* buf, Command &cmd, ControllerParam_t & co
   if (this->with_sign_ && data->sign == 0x0000) return false;
   if (!this->with_sign_ && data->sign != 0x0000) return false;
 
-  std::string decoded = esphome::format_hex_pretty(buf, this->len_);
-  ENSURE_EQ(crc16, data->crc16, "Decoded KO (crc16) - %s", decoded.c_str());
+  char decoded[PACKET_HEX_BUFFER_SIZE];
+  format_hex_pretty_to(decoded, buf, this->len_, '.');
+  ENSURE_EQ(crc16, data->crc16, "Decoded KO (crc16) - %s (%zu)", decoded, this->len_);
 
   if (this->with_sign_) {
-    ENSURE_EQ(this->sign(buf + 1, data->tx_count, data->seed), data->sign, "Decoded KO (sign) - %s", decoded.c_str());
+    ENSURE_EQ(this->sign(buf + 1, data->tx_count, data->seed), data->sign, "Decoded KO (sign) - %s (%zu)", decoded,
+              this->len_);
   }
 
   cmd.cmd_ = (CommandType) (data->command);
